@@ -6,7 +6,7 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   LOG_LEVEL: z.string().default('info'),
 
-  CORS_ORIGINS: z.string().default('http://localhost:3000'),
+CORS_ORIGINS: z.string().default('http://localhost:3000,https://sync-main.vercel.app'),
   APP_URL: z.string().url().default('http://localhost:4000'),
   FRONTEND_URL: z.string().url().default('http://localhost:3000'),
 
@@ -23,9 +23,9 @@ const EnvSchema = z.object({
 
   COOKIE_DOMAIN: z.string().optional(),
   COOKIE_SECURE: z
-    .string()
-    .transform((v) => v === 'true')
-    .default('false'),
+  .string()
+  .transform((v) => v === 'true')
+  .default('true'),
   /**
    * Path the refresh cookie is scoped to.
    *
@@ -40,7 +40,7 @@ const EnvSchema = z.object({
    * or `none` (cross-origin like Vercel + Render).
    * If unset, we pick based on COOKIE_SECURE: `none` in secure mode, `lax` otherwise.
    */
-  COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).optional(),
+ COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).default('none'),
 
   // === Storage ===
   // `cloudinary` (default for prod) or `s3` (MinIO/S3 for local Docker dev).
