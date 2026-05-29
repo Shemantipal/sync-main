@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { UserRef } from '@/lib/types';
 
 interface AuthState {
@@ -12,32 +11,12 @@ interface AuthState {
   clear: () => void;
 }
 
-export const useAuth = create<AuthState>()(
-  persist(
-    (set) => ({
-      accessToken: null,
-      user: null,
-      hydrated: false,
-
-      setAccessToken: (accessToken) => set({ accessToken }),
-      setUser: (user) => set({ user }),
-      setHydrated: (hydrated) => set({ hydrated }),
-
-      clear: () =>
-        set({
-          accessToken: null,
-          user: null,
-        }),
-    }),
-    {
-      name: 'sync-auth',
-      partialize: (state) => ({
-        accessToken: state.accessToken,
-        user: state.user,
-      }),
-      onRehydrateStorage: () => (state) => {
-        state?.setHydrated(true);
-      },
-    }
-  )
-);
+export const useAuth = create<AuthState>((set) => ({
+  accessToken: null,
+  user: null,
+  hydrated: false,
+  setAccessToken: (accessToken) => set({ accessToken }),
+  setUser: (user) => set({ user }),
+  setHydrated: (hydrated) => set({ hydrated }),
+  clear: () => set({ accessToken: null, user: null }),
+}));

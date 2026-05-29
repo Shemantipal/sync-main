@@ -31,6 +31,21 @@ function cookieOpts(expires?: Date): CookieOptions {
   };
 }
 
+// Boot-time diagnostic — logged once so a misconfigured cookie path is
+// immediately visible in Vercel/Render logs without needing to repro a login.
+import { logger as _bootLogger } from '../config/logger';
+const _bootSecure = env.COOKIE_SECURE || env.isProd;
+_bootLogger.info(
+  {
+    cookieName: REFRESH_COOKIE,
+    path: env.COOKIE_PATH,
+    sameSite: env.COOKIE_SAMESITE ?? (_bootSecure ? 'none' : 'lax'),
+    secure: _bootSecure,
+    domain: env.COOKIE_DOMAIN || '(none)',
+  },
+  'Refresh cookie config',
+);
+
 function setRefreshCookie(res: Response, refreshToken: string, expires: Date) {
   res.cookie(REFRESH_COOKIE, refreshToken, cookieOpts(expires));
 }

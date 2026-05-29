@@ -9,7 +9,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env';
 import { logger } from './config/logger';
-import { connectDB } from './config/db';
+import { connectDB, ensureDB } from './config/db';
 import { globalLimiter } from './middleware/rateLimit';
 import { errorHandler, notFound } from './middleware/errorHandler';
 import { authRouter } from './routes/auth';
@@ -27,17 +27,36 @@ export function createApp() {
   app.set('trust proxy', 1);
 
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-  app.use(
-    cors({
+
+  /**
+   * CORS with same-origin auto-allow. Three accept conditions:
+   *   1. No Origin header (curl, server-to-server) — pass.
+   *   2. Origin matches the request's own host (same-origin) — pass.
+   *      This makes every Vercel preview URL work without re-listing them in
+   *      `CORS_ORIGINS`, which only contains the canonical production URL.
+   *   3. Origin is in the explicit `CORS_ORIGINS` allowlist — pass.
+   *   Otherwise — reject.
+   *
+   * Note: same-origin requests don't strictly need CORS at all (the browser
+   * skips the SOP check), but the `cors` package sees the Origin header and
+   * would refuse to set ACAO headers, which can still confuse some flows.
+   * Treating same-origin as an explicit allow keeps the response shape sane.
+   */
+  app.use((req, res, next) => {
+    const host = (req.headers['x-forwarded-host'] as string | undefined) ?? req.headers.host;
+    const proto = (req.headers['x-forwarded-proto'] as string | undefined) ?? req.protocol;
+    const sameOrigin = host ? `${proto}://${host}` : null;
+
+    return cors({
+      credentials: true,
       origin(origin, cb) {
-        // Allow tools without an Origin (curl, server-to-server) and known FE origins.
         if (!origin) return cb(null, true);
+        if (sameOrigin && origin === sameOrigin) return cb(null, true);
         if (env.CORS_ORIGINS_LIST.includes(origin)) return cb(null, true);
         return cb(new Error(`Origin ${origin} not allowed by CORS`));
       },
-      credentials: true,
-    }),
-  );
+    })(req, res, next);
+  });
   app.use(cookieParser());
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
@@ -45,8 +64,27 @@ export function createApp() {
 
   app.get('/health', (_req, res) => res.json({ ok: true, env: env.NODE_ENV, time: new Date().toISOString() }));
 
-  // Interactive API docs — Swagger UI at /docs, raw spec at /docs.json
+  // Interactive API docs — Swagger UI at /docs, raw spec at /docs.json (don't need Mongo)
   app.use('/', buildDocsRouter());
+
+  /**
+   * DB connection gate. Every /api/* request awaits ensureDB() so handlers run
+   * against a live connection (or fail fast with a real error). On Vercel this
+   * is what makes the cold-start path work: the first request after a deploy
+   * waits ~1-2s for connect, subsequent requests are no-ops.
+   *
+   * Skipped in test mode — tests provide their own connection via setup.ts.
+   */
+  if (!env.isTest) {
+    app.use('/api', async (_req, _res, next) => {
+      try {
+        await ensureDB();
+        next();
+      } catch (err) {
+        next(err);
+      }
+    });
+  }
 
   app.use('/api/auth', authRouter);
   app.use('/api/projects', projectsRouter);

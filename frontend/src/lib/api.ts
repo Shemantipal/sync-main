@@ -1,4 +1,13 @@
-
+/**
+ * Lightweight typed fetch wrapper.
+ *
+ *  - Adds `Authorization: Bearer <token>` from the auth store.
+ *  - Sends cookies on every call (`credentials: 'include'`) so the refresh cookie travels.
+ *  - On `401 INVALID_TOKEN`, attempts a single in-flight refresh and replays the original request.
+ *
+ * Refresh is single-flighted (a shared promise) so a burst of parallel 401s doesn't
+ * spawn N refresh calls.
+ */
 import { useAuth } from '@/store/auth';
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
