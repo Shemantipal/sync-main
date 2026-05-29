@@ -1,6 +1,7 @@
 'use client';
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { api, apiRaw } from '@/lib/api';
 import { joinProject, leaveProject } from '@/lib/socket';
@@ -15,26 +16,28 @@ import { ProjectMembersPanel } from '@/components/project-members-panel';
 import { ProjectActivityPanel } from '@/components/project-activity-panel';
 import { useAuth } from '@/store/auth';
 
-// Stable empty reference — Zustand selectors must return the same object identity
-// across renders when the underlying state hasn't changed, or React's
-// useSyncExternalStore loops. Inlining `?? {}` would allocate fresh objects.
 const EMPTY_TASK_MAP: Record<string, Task> = {};
 
 export default function ProjectPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = use(params);
+  const router = useRouter(); // ← moved to top, before any early return
+
   const [project, setProject] = useState<Project | null>(null);
-  const [filters, setFilters] = useState<TaskFilterState>({ search: '', status: 'all', priority: 'all', sort: '-updatedAt' });
+  const [filters, setFilters] = useState<TaskFilterState>({
+    search: '',
+    status: 'all',
+    priority: 'all',
+    sort: '-updatedAt',
+  });
   const setMany = useTasks((s) => s.setMany);
   const tasksMap = useTasks((s) => s.byProject[projectId] ?? EMPTY_TASK_MAP);
   const me = useAuth((s) => s.user);
 
-  // Join project room on mount, leave on unmount — pure realtime lifecycle.
   useEffect(() => {
     joinProject(projectId);
     return () => { leaveProject(projectId); };
   }, [projectId]);
 
-  // Load project meta.
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -44,7 +47,6 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
     return () => { alive = false; };
   }, [projectId]);
 
-  // Load tasks whenever filters change. Debounced search lives in TaskFilters.
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -60,6 +62,7 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
     return () => { alive = false; };
   }, [projectId, filters, setMany]);
 
+ 
   if (!project) {
     return (
       <div className="space-y-4">
@@ -76,24 +79,57 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
         ? 'admin'
         : project.members.find((m) => m.user._id === me._id)?.role
     : undefined;
-  const canManage = myRole === 'admin';
-  const canEdit = myRole === 'admin' || myRole === 'member';
 
-  const tasks = Object.values(tasksMap);
+  const canManage = myRole === 'admin';
+  const canEdit   = myRole === 'admin' || myRole === 'member';
+  const tasks     = Object.values(tasksMap);
+
+  const handleEdit = async () => {
+    const name = prompt('Project name', project.name);
+    if (!name) return;
+    const description = prompt('Description', project.description ?? '');
+    const updated = await api<Project>(`/api/projects/${projectId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name, description }),
+    });
+    setProject(updated);
+  };
+
+  const handleArchive = async () => {
+    await api(`/api/projects/${projectId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'archived' }),
+    });
+    router.push('/dashboard');
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Delete this project permanently? This cannot be undone.')) return;
+    await api(`/api/projects/${projectId}`, { method: 'DELETE' });
+    router.push('/dashboard');
+  };
+
+  const handleTransfer = () => {
+    // TODO: open transfer ownership dialog
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div>
           <Button variant="ghost" size="sm" asChild className="-ml-2 mb-1">
-            <Link href="/dashboard"><ArrowLeft className="mr-1 h-4 w-4" /> Dashboard</Link>
+            <Link href="/dashboard">
+              <ArrowLeft className="mr-1 h-4 w-4" /> Dashboard
+            </Link>
           </Button>
           <h1 className="text-2xl font-semibold tracking-tight">{project.name}</h1>
           {project.description && (
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{project.description}</p>
           )}
         </div>
-        <Badge variant={project.status === 'active' ? 'secondary' : 'outline'}>{project.status}</Badge>
+        <Badge variant={project.status === 'active' ? 'secondary' : 'outline'}>
+          {project.status}
+        </Badge>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -107,11 +143,119 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
             canDelete={canManage}
           />
         </div>
+
         <div className="space-y-6">
           <ProjectMembersPanel project={project} canManage={canManage} onUpdated={setProject} />
           <ProjectActivityPanel projectId={projectId} />
+
+          {canManage && (
+            <div className="space-y-2.5">
+
+            
+              <div className="overflow-hidden rounded-[10px] border border-[#e8e8e8]">
+                <div className="border-b border-[#e8e8e8] px-[18px] py-3.5">
+                  <p className="text-[13px] font-medium tracking-[-0.01em] text-[#0a0a0a]">
+                    Project settings
+                  </p>
+                  <p className="mt-0.5 text-[11.5px] font-light text-[#aaa]">
+                    Manage name, description and status
+                  </p>
+                </div>
+                <SettingsRow
+                  label="Edit project"
+                  desc="Update the project name, description, or status."
+                >
+                  <ActionButton onClick={handleEdit}>Edit</ActionButton>
+                </SettingsRow>
+                <SettingsRow
+                  label="Archive project"
+                  desc="Hide this project from active views. Can be restored later."
+                >
+                  <ActionButton onClick={handleArchive}>Archive</ActionButton>
+                </SettingsRow>
+              </div>
+
+              <div className="overflow-hidden rounded-[10px] border border-[#fde8e6]">
+                <div className="border-b border-[#fde8e6] bg-[#fffaf9] px-[18px] py-3.5">
+                  <p className="text-[13px] font-medium tracking-[-0.01em] text-[#c0392b]">
+                    Danger zone
+                  </p>
+                  <p className="mt-0.5 text-[11.5px] font-light text-[#e0a09a]">
+                    These actions are irreversible. Please be certain.
+                  </p>
+                </div>
+                <SettingsRow
+                  label="Transfer ownership"
+                  desc="Assign a new owner. You will lose admin access."
+                >
+                  <DangerButton onClick={handleTransfer}>Transfer</DangerButton>
+                </SettingsRow>
+                <SettingsRow
+                  label="Delete project"
+                  desc="Permanently delete this project and all its tasks. Cannot be undone."
+                >
+                  <DangerButton onClick={handleDelete}>Delete project</DangerButton>
+                </SettingsRow>
+              </div>
+
+            </div>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+function SettingsRow({
+  label,
+  desc,
+  children,
+}: {
+  label: string;
+  desc: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-[#f0f0f0] px-[18px] py-3.5 last:border-b-0">
+      <div>
+        <p className="text-[13px] font-medium tracking-[-0.01em] text-[#0a0a0a]">{label}</p>
+        <p className="mt-0.5 text-[11.5px] font-light text-[#aaa]">{desc}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function ActionButton({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="whitespace-nowrap rounded-[7px] border border-[#d0d0d0] bg-transparent px-3.5 py-1.5 text-xs font-medium tracking-[-0.01em] text-[#0a0a0a] transition-colors hover:bg-[#f5f5f5]"
+    >
+      {children}
+    </button>
+  );
+}
+
+function DangerButton({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="whitespace-nowrap rounded-[7px] border border-[#f5c6c2] bg-transparent px-3.5 py-1.5 text-xs font-medium tracking-[-0.01em] text-[#c0392b] transition-colors hover:bg-[#fdf2f1]"
+    >
+      {children}
+    </button>
   );
 }

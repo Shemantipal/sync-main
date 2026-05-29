@@ -36,7 +36,7 @@ export default function HomePage() {
         real-time sync
       </span>
 
-      {/* Content */}
+      
       <div className="relative flex flex-col items-center">
         <p
           className="mb-5 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
