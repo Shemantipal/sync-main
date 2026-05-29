@@ -134,27 +134,7 @@ cd backend && npm test
   the Atlas IP allowlist.
 - **Files** — Cloudinary free tier is sufficient for the assignment.
 
-## Trade-offs (made due to the 48-hour window)
 
-- **In-memory cache, not Redis.** Per-process; fine for single-instance Render dyno.
-  Cache contract is isolated in `backend/src/cache/memoryCache.ts` so swapping to
-  Redis is a 30-line change.
-- **No background job queue.** Emails are sent inline via Resend (returns fast).
-  Cloudinary destroys on file delete are best-effort.
-- **No comments / @mentions / dependencies.** Listed under PRD "optional" — skipped
-  to keep the realtime/RBAC core polished.
-- **`require()` in Tailwind config.** Next 14 + Tailwind 3 pattern; if migrating to
-  Tailwind 4 the import shape changes.
-
-## What I would add given another week
-
-- Redis-backed Socket.io adapter for horizontal scaling
-- Real-time OT/CRDT on rich-text task descriptions (today: last-write-wins by version)
-- BullMQ for email + Cloudinary cleanup
-- Per-user notifications via socket fan-out (currently DB-persisted, polled on bell open)
-- Comments with @mentions, task tags, CSV export
-- Sentry + OpenTelemetry tracing across REST + Socket.io
-- E2E tests with Playwright covering the realtime collaboration flow
 
 ## License
 
