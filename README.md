@@ -2,6 +2,9 @@
 
 A production-ready MERN stack platform for real-time team task management.
 
+<img width="1335" height="521" alt="image" src="https://github.com/user-attachments/assets/d53b02c0-15a6-4ace-81f7-1699def86985" />
+
+
 - **Frontend** — Next.js 14 (App Router), TypeScript, Tailwind, Shadcn, Zustand, Zod, React Hook Form, Socket.io-client
 - **Backend** — Express 4, TypeScript, Mongoose, Socket.io, Zod, JWT, bcrypt, Helmet, express-rate-limit
 - **Storage** — MongoDB Atlas, Cloudinary, Resend (email)
@@ -132,6 +135,11 @@ cd backend && npm test
 - **Database** — MongoDB Atlas. Add Render's egress IP (or `0.0.0.0/0` for trial) to
   the Atlas IP allowlist.
 - **Files** — Cloudinary free tier is sufficient for the assignment.
+
+<img width="1570" height="895" alt="image" src="https://github.com/user-attachments/assets/bbceed87-72d5-406e-afe6-95d71cd1f20e" />
+<img width="1538" height="768" alt="image" src="https://github.com/user-attachments/assets/fa9cd134-c46a-49a9-820b-8f3ae5e9396b" />
+
+<img width="1574" height="871" alt="image" src="https://github.com/user-attachments/assets/321db277-9d29-422d-b190-a923a9f6fc4d" />
 
 
 
