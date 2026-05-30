@@ -5,26 +5,9 @@ import { apiRaw } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Activity } from '@/lib/types';
+import { ACTION_LABEL } from '../lib/activity-labels';
 
-const ACTION_LABEL: Record<string, string> = {
-  'project.created': 'created the project',
-  'project.updated': 'updated the project',
-  'project.archived': 'archived the project',
-  'project.member_added': 'added a member',
-  'project.member_removed': 'removed a member',
-  'project.member_role_changed': "changed a member's role",
-  'project.invite_sent': 'invited someone',
-  'project.invite_accepted': 'joined the project',
-  'task.created': 'created a task',
-  'task.updated': 'updated a task',
-  'task.deleted': 'deleted a task',
-  'task.status_changed': 'changed a task status',
-  'task.assigned': 'assigned a task',
-  'task.attachment_added': 'attached a file',
-  'task.attachment_removed': 'removed an attachment',
-  'task.bulk_updated': 'bulk-updated tasks',
-  'task.bulk_deleted': 'bulk-deleted tasks',
-};
+
 
 export function ProjectActivityPanel({ projectId }: { projectId: string }) {
   const [items, setItems] = useState<Activity[] | null>(null);
