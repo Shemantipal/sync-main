@@ -26,7 +26,11 @@ export function createApp() {
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
 
-  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  }),
+);
   app.use((req, res, next) => {
     const host = (req.headers['x-forwarded-host'] as string | undefined) ?? req.headers.host;
     const proto = (req.headers['x-forwarded-proto'] as string | undefined) ?? req.protocol;
