@@ -24,7 +24,7 @@ export function TransferOwnershipDialog({ open, project, onClose, onTransferred 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // members list (excludes owner who is already the current user)
+  
   const members = project.members.filter((m) => m.role !== 'admin');
 
   const handleTransfer = async () => {
