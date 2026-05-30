@@ -7,9 +7,10 @@ import { useTasks } from '@/store/tasks';
 import type { ProjectMember, Task, TaskStatus } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { TaskDialog } from './task-dialog';
+import { TaskDetailsDialog } from './task-details-dialog';
 import { CreateTaskDialog } from './create-task-dialog';
 import { cn } from '@/lib/utils';
+
 
 const COLUMNS: { id: TaskStatus; label: string }[] = [
   { id: 'todo', label: 'To do' },
@@ -83,7 +84,7 @@ export function KanbanBoard({
       ))}
 
       {selectedTaskId && (
-        <TaskDialog
+        <TaskDetailsDialog
           projectId={projectId}
           taskId={selectedTaskId}
           members={members}

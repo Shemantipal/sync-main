@@ -192,7 +192,7 @@ export function TaskDialog({
             />
           </div>
 
-          {/* Assignees (display only — bulk-assignment lives in members panel) */}
+       
           {task.assignees.length > 0 && (
             <div className="space-y-2">
               <Label>Assignees</Label>
@@ -212,7 +212,7 @@ export function TaskDialog({
             </div>
           )}
 
-          {/* Attachments */}
+         
           <div className="space-y-2">
             <Label>Attachments ({task.attachments.length})</Label>
             <div className="space-y-1.5">

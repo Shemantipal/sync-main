@@ -1,4 +1,4 @@
-import { Schema, model, type Document, type Types } from 'mongoose';
+import mongoose, { Schema, model, type Document, type Types } from 'mongoose';
 
 export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'completed';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'critical';
@@ -14,6 +14,15 @@ export interface TaskAttachment {
   uploadedAt: Date;
 }
 
+export interface TaskComment {
+  _id?: Types.ObjectId;
+  text: string;
+  author: Types.ObjectId;
+  mentions: Types.ObjectId[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 export interface TaskDoc extends Document {
   _id: Types.ObjectId;
   project: Types.ObjectId;
@@ -24,9 +33,9 @@ export interface TaskDoc extends Document {
   assignees: Types.ObjectId[];
   dueDate?: Date;
   attachments: TaskAttachment[];
+  comments: TaskComment[];
   createdBy: Types.ObjectId;
   updatedBy: Types.ObjectId;
-  /** Bumped on every server-side mutation; used for optimistic concurrency. */
   version: number;
   createdAt: Date;
   updatedAt: Date;
@@ -46,6 +55,15 @@ const attachmentSchema = new Schema<TaskAttachment>(
   { _id: false },
 );
 
+const commentSchema = new Schema<TaskComment>(
+  {
+    text: { type: String, required: true, trim: true, maxlength: 5000 },
+    author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    mentions: { type: [{ type: Schema.Types.ObjectId, ref: 'User' }], default: [] },
+  },
+  { timestamps: true },
+);
+
 const taskSchema = new Schema<TaskDoc>(
   {
     project: { type: Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
@@ -56,6 +74,7 @@ const taskSchema = new Schema<TaskDoc>(
     assignees: { type: [{ type: Schema.Types.ObjectId, ref: 'User' }], default: [], index: true },
     dueDate: { type: Date, index: true },
     attachments: { type: [attachmentSchema], default: [] },
+    comments: { type: [commentSchema], default: [] },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     version: { type: Number, default: 0 },
@@ -63,11 +82,9 @@ const taskSchema = new Schema<TaskDoc>(
   { timestamps: true },
 );
 
-// Compound indexes for common queries.
 taskSchema.index({ project: 1, status: 1, priority: 1 });
 taskSchema.index({ project: 1, updatedAt: -1 });
 taskSchema.index({ project: 1, dueDate: 1 });
-// Text index for search by title/description.
 taskSchema.index({ title: 'text', description: 'text' });
 
 export const Task = model<TaskDoc>('Task', taskSchema);

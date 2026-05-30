@@ -114,10 +114,12 @@ export function ProjectMembersPanel({
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
-        {project.members.map((m) => {
+       {project.members
+  .filter((m) => typeof m.user !== 'string' && m.user?._id)
+  .map((m) => {
           const isOwner = typeof project.owner !== 'string' && m.user._id === project.owner._id;
           return (
-            <div key={m.user._id} className="flex items-center justify-between gap-2">
+            <div key={`${m.user._id}-${m.role}`} className="flex items-center justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2">
                 <Avatar className="h-7 w-7"><AvatarFallback>{initials(m.user.name)}</AvatarFallback></Avatar>
                 <div className="min-w-0">

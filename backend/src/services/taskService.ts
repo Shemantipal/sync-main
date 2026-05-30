@@ -43,14 +43,13 @@ export async function listTasks(opts: ListOpts) {
   if (opts.priority) filter.priority = opts.priority;
   if (opts.assignee) filter.assignees = new Types.ObjectId(opts.assignee);
   if (opts.search) {
-    // Text search if available, else regex.
+ 
     filter.$or = [
       { title: { $regex: opts.search, $options: 'i' } },
       { description: { $regex: opts.search, $options: 'i' } },
     ];
   }
 
-  // Sort mapping.
   const sortObj: Record<string, 1 | -1> = {};
   const field = opts.sort.replace(/^-/, '');
   sortObj[field] = opts.sort.startsWith('-') ? -1 : 1;
@@ -61,8 +60,10 @@ export async function listTasks(opts: ListOpts) {
       .skip((opts.page - 1) * opts.limit)
       .limit(opts.limit)
       .populate('assignees', 'name email avatarUrl')
-      .populate('createdBy', 'name email avatarUrl')
-      .lean(),
+.populate('createdBy', 'name email avatarUrl')
+.populate('comments.author', 'name email avatarUrl')
+.populate('comments.mentions', 'name email avatarUrl')
+.lean(),
     Task.countDocuments(filter),
   ]);
 
@@ -73,10 +74,12 @@ export async function listTasks(opts: ListOpts) {
 
 export async function getTask(projectId: string, taskId: string) {
   const task = await Task.findOne({ _id: taskId, project: projectId })
-    .populate('assignees', 'name email avatarUrl')
-    .populate('createdBy', 'name email avatarUrl')
-    .populate('updatedBy', 'name email avatarUrl')
-    .lean();
+   .populate('assignees', 'name email avatarUrl')
+.populate('createdBy', 'name email avatarUrl')
+.populate('updatedBy', 'name email avatarUrl')
+.populate('comments.author', 'name email avatarUrl')
+.populate('comments.mentions', 'name email avatarUrl')
+.lean();
   if (!task) throw new NotFoundError('Task not found');
   return task;
 }
@@ -116,11 +119,6 @@ export interface UpdateInput {
   expectedVersion?: number;
 }
 
-/**
- * Conditionally update — succeeds only if version matches `expectedVersion` (when provided).
- * This is the core of our optimistic-concurrency model and prevents the lost-update problem
- * when two clients edit the same task at once.
- */
 export async function updateTask(projectId: string, taskId: string, actorId: string, input: UpdateInput): Promise<TaskDoc> {
   const filter: Record<string, unknown> = { _id: taskId, project: projectId };
   if (typeof input.expectedVersion === 'number') filter.version = input.expectedVersion;
@@ -140,7 +138,7 @@ export async function updateTask(projectId: string, taskId: string, actorId: str
   );
 
   if (!updated) {
-    // Either not found or version mismatch — distinguish.
+
     const exists = await Task.exists({ _id: taskId, project: projectId });
     if (!exists) throw new NotFoundError('Task not found');
     throw new ConflictError('Task was modified by someone else — please reload', { code: 'VERSION_CONFLICT' });

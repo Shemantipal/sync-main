@@ -48,6 +48,16 @@ export const AttachmentSchema = z.object({
 });
 export type Attachment = z.infer<typeof AttachmentSchema>;
 
+export const TaskCommentSchema = z.object({
+  _id: z.string(),
+  text: z.string(),
+  author: UserRefSchema.or(z.string()),
+  mentions: z.array(UserRefSchema.or(z.string())).default([]),
+  createdAt: z.string(),
+  updatedAt: z.string().optional(),
+});
+export type TaskComment = z.infer<typeof TaskCommentSchema>;
+
 export const TaskSchema = z.object({
   _id: z.string(),
   project: z.string(),
@@ -58,8 +68,9 @@ export const TaskSchema = z.object({
   assignees: z.array(UserRefSchema.or(z.string())).default([]),
   dueDate: z.string().nullable().optional(),
   attachments: z.array(AttachmentSchema).default([]),
+  comments: z.array(TaskCommentSchema).default([]),
   createdBy: UserRefSchema.or(z.string()),
-  updatedBy: z.string().optional(),
+  updatedBy: UserRefSchema.or(z.string()).optional(),
   version: z.number(),
   createdAt: z.string(),
   updatedAt: z.string(),

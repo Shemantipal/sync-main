@@ -26,4 +26,6 @@ r.get('/:taskId', requireProjectRole('viewer'), ctrl.detail);
 r.patch('/:taskId', requireProjectRole('member'), validate(taskUpdateSchema), ctrl.update);
 r.delete('/:taskId', requireProjectRole('admin'), ctrl.remove);
 
+r.post('/:taskId/comments', requireProjectRole('member'), ctrl.addComment);
+
 export const tasksRouter = r;

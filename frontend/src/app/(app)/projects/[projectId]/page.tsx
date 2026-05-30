@@ -200,7 +200,7 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
 )}
                 </div>
 
-                {/* Danger zone */}
+                
                 <div className="overflow-hidden rounded-[10px] border border-[#fde8e6]">
                   <div className="border-b border-[#fde8e6] bg-[#fffaf9] px-[18px] py-3.5">
                     <p className="text-[13px] font-medium tracking-[-0.01em] text-[#c0392b]">

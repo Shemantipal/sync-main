@@ -83,10 +83,22 @@ export async function createProject(userId: string, input: { name: string; descr
   return project;
 }
 
-export async function updateProject(projectId: string, userId: string, patch: Partial<{ name: string; description: string; status: 'active' | 'archived' }>) {
-  const project = await Project.findByIdAndUpdate(projectId, patch, { new: true, runValidators: true });
+export async function updateProject(
+  projectId: string,
+  userId: string,
+  patch: Partial<{ name: string; description: string; status: 'active' | 'archived' }>,
+) {
+  const project = await Project.findByIdAndUpdate(projectId, patch, {
+    new: true,
+    runValidators: true,
+  })
+    .populate('owner', 'name email avatarUrl')
+    .populate('members.user', 'name email avatarUrl');
+
   if (!project) throw new NotFoundError('Project not found');
+
   invalidateUserProjectCache(userId);
+
   await logActivity({
     project: project._id,
     actor: userId,
@@ -94,6 +106,7 @@ export async function updateProject(projectId: string, userId: string, patch: Pa
     target: { kind: 'project', id: project._id },
     metadata: patch,
   });
+
   return project;
 }
 
@@ -216,14 +229,19 @@ export async function acceptInvitation(rawToken: string, userId: string) {
 export async function changeMemberRole(projectId: string, actorId: string, targetUserId: string, role: ProjectRole) {
   const project = await Project.findById(projectId);
   if (!project) throw new NotFoundError('Project not found');
+
   if (String(project.owner) === targetUserId) {
     throw new BadRequestError("Cannot change the owner's role");
   }
+
   const member = project.members.find((m) => String(m.user) === targetUserId);
   if (!member) throw new NotFoundError('User is not a member of this project');
+
   member.role = role;
   await project.save();
+
   invalidateUserProjectCache(targetUserId);
+
   await logActivity({
     project: project._id,
     actor: actorId,
@@ -231,25 +249,39 @@ export async function changeMemberRole(projectId: string, actorId: string, targe
     target: { kind: 'user', id: targetUserId },
     metadata: { role },
   });
-  return project;
+
+  return Project.findById(projectId)
+    .populate('owner', 'name email avatarUrl')
+    .populate('members.user', 'name email avatarUrl');
 }
 
 export async function removeMember(projectId: string, actorId: string, targetUserId: string) {
   const project = await Project.findById(projectId);
   if (!project) throw new NotFoundError('Project not found');
+
   if (String(project.owner) === targetUserId) {
     throw new BadRequestError('Cannot remove the project owner');
   }
+
   const before = project.members.length;
   project.members = project.members.filter((m) => String(m.user) !== targetUserId);
-  if (project.members.length === before) throw new NotFoundError('User is not a member of this project');
+
+  if (project.members.length === before) {
+    throw new NotFoundError('User is not a member of this project');
+  }
+
   await project.save();
+
   invalidateUserProjectCache(targetUserId);
+
   await logActivity({
     project: project._id,
     actor: actorId,
     action: 'project.member_removed',
     target: { kind: 'user', id: targetUserId },
   });
-  return project;
+
+  return Project.findById(projectId)
+    .populate('owner', 'name email avatarUrl')
+    .populate('members.user', 'name email avatarUrl');
 }
