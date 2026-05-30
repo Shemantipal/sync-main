@@ -1,7 +1,6 @@
 # SYNC — Real-time Collaborative Project Management
 
-A production-ready MERN stack platform for real-time team task management. Built against
-the senior-developer assignment in `prd.md`.
+A production-ready MERN stack platform for real-time team task management.
 
 - **Frontend** — Next.js 14 (App Router), TypeScript, Tailwind, Shadcn, Zustand, Zod, React Hook Form, Socket.io-client
 - **Backend** — Express 4, TypeScript, Mongoose, Socket.io, Zod, JWT, bcrypt, Helmet, express-rate-limit
