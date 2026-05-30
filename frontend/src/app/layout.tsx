@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     siteName: 'SYNC',
     images: [
       {
-        url: '/og.png',
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: 'SYNC Project Management',
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     title: 'SYNC — Real-time project management',
     description:
       'Collaborative project & task management with real-time updates.',
-    images: ['/og.png'],
+    images: ['/og-image.png'],
   },
 };
 
